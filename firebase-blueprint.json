@@ -1,0 +1,159 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User clinician or ophthalmology staff profile",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique Firebase Auth identifier",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display or clinical name",
+          "maxLength": 128
+        },
+        "role": {
+          "type": "string",
+          "description": "Account role",
+          "enum": ["clinician", "screener", "administrator"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "ScreeningRecord": {
+      "title": "ScreeningRecord",
+      "description": "Bilateral diabetic retinopathy retinal screening record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document identifier",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of clinician who conducted the screening",
+          "maxLength": 128
+        },
+        "patientName": {
+          "type": "string",
+          "description": "Patient full name",
+          "maxLength": 128
+        },
+        "patientNumber": {
+          "type": "string",
+          "description": "Clinic medical record number",
+          "maxLength": 64
+        },
+        "examDate": {
+          "type": "string",
+          "description": "Date of screening exam",
+          "maxLength": 32
+        },
+        "overallCategory": {
+          "type": "string",
+          "description": "AI overall screening category",
+          "maxLength": 128
+        },
+        "recordData": {
+          "type": "string",
+          "description": "Serialized screening findings and bilateral metrics payload",
+          "maxLength": 500000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when record was saved"
+        }
+      },
+      "required": ["id", "userId", "patientName", "patientNumber", "examDate", "overallCategory"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Patient retinal screening appointment booking created from Admin portal",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Booking document identifier",
+          "maxLength": 128
+        },
+        "patientName": {
+          "type": "string",
+          "description": "Patient full name",
+          "maxLength": 128
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "Patient telephone or contact number",
+          "maxLength": 64
+        },
+        "examDate": {
+          "type": "string",
+          "description": "Scheduled exam date",
+          "maxLength": 32
+        },
+        "timeSlot": {
+          "type": "string",
+          "description": "Selected time appointment slot",
+          "maxLength": 64
+        },
+        "diabetesStatus": {
+          "type": "string",
+          "description": "Patient reported diabetes classification",
+          "maxLength": 64
+        },
+        "priority": {
+          "type": "string",
+          "description": "Appointment clinical priority tier",
+          "enum": ["Routine", "Urgent", "Follow-up"]
+        },
+        "examType": {
+          "type": "string",
+          "description": "Type of retinal screening exam",
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "description": "Booking workflow status",
+          "enum": ["Scheduled", "Confirmed", "Completed", "Cancelled"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Administrative or triage intake notes",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when booking was created"
+        }
+      },
+      "required": ["id", "patientName", "contactNumber", "examDate", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Clinician user profiles indexed by Auth UID"
+    },
+    "/screenings/{screeningId}": {
+      "schema": "ScreeningRecord",
+      "description": "Diabetic retinopathy screening records accessible by owner and administrator"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Clinic screening appointment bookings managed by administrator"
+    }
+  }
+}

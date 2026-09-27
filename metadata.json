@@ -1,0 +1,8 @@
+{
+  "name": "RetinaCare AI",
+  "description": "AI-assisted retinal image screening and bilateral left-vs-right eye comparison clinical research dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

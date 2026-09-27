@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'shauryavikramsingh02@gmail.com' ||
+        request.auth.token.email == 'sshauryavikram@gmail.com'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validation for UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (!('role' in data) || (data.role in ['clinician', 'screener', 'administrator'])) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // Entity validation for ScreeningRecord
+    function isValidScreeningRecord(data) {
+      return data.keys().hasAll(['id', 'userId', 'patientName', 'patientNumber', 'examDate', 'overallCategory']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.patientName is string && data.patientName.size() <= 128 &&
+             data.patientNumber is string && data.patientNumber.size() <= 64 &&
+             data.examDate is string && data.examDate.size() <= 32 &&
+             data.overallCategory is string && data.overallCategory.size() <= 128 &&
+             (!('recordData' in data) || (data.recordData is string && data.recordData.size() <= 1000000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // Entity validation for Booking
+    function isValidBooking(data) {
+      return data.keys().hasAll(['id', 'patientName', 'contactNumber', 'examDate', 'status']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.patientName is string && data.patientName.size() <= 128 &&
+             data.contactNumber is string && data.contactNumber.size() <= 64 &&
+             data.examDate is string && data.examDate.size() <= 32 &&
+             data.status in ['Scheduled', 'Confirmed', 'Completed', 'Cancelled'] &&
+             (!('timeSlot' in data) || (data.timeSlot is string && data.timeSlot.size() <= 64)) &&
+             (!('diabetesStatus' in data) || (data.diabetesStatus is string && data.diabetesStatus.size() <= 64)) &&
+             (!('priority' in data) || (data.priority in ['Routine', 'Urgent', 'Follow-up'])) &&
+             (!('examType' in data) || (data.examType is string && data.examType.size() <= 128)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // Match rules for Users collection
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().uid == request.auth.uid;
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUserProfile(incoming()) && incoming().uid == existing().uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role']);
+      allow delete: if false;
+    }
+
+    // Match rules for Screenings collection
+    match /screenings/{screeningId} {
+      allow get: if isSignedIn() && isValidId(screeningId) && (existing().userId == request.auth.uid || isAdmin() || screeningId.matches('^rec-case-.*'));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(screeningId) && isValidScreeningRecord(incoming()) && (incoming().userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(screeningId) && isValidScreeningRecord(incoming()) && 
+                    (existing().userId == request.auth.uid || isAdmin() || screeningId.matches('^rec-case-.*'));
+      allow delete: if isSignedIn() && isValidId(screeningId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Match rules for Bookings collection
+    match /bookings/{bookingId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
